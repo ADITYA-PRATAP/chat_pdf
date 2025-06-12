@@ -7,6 +7,7 @@ import { uploadToS3 } from "../lib/s3";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 interface UploadData {
   file_key: string;
@@ -15,50 +16,50 @@ interface UploadData {
 
 const FileUpload = () => {
   const [uploading, setUploading] = React.useState(false);
+  const [processing, setProcessing] = React.useState(false); // <-- API loader
+  const router = useRouter();
 
-  const { mutate  } = useMutation({
-   mutationFn: async (data: UploadData) => {
-  try {
-    const response = await axios.post("/api/create-chat", data);
-    return response.data;
-  } catch (err) {
-    console.error("API error", err);
-    throw err; // re-throw so react-query knows mutation failed
-  }
-},
+  const mutation = useMutation({
+    mutationFn: async (data: UploadData) => {
+      const response = await axios.post("/api/create-chat", data);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      toast.success("File uploaded successfully!");
+      router.push(`/chat/${data.chat_id}`);
+    },
+    onError: (error) => {
+      console.error("Error uploading file:", error);
+      toast.error("Failed to process file. Please try again.");
+    },
+    onSettled: () => {
+      setProcessing(false);
+    },
   });
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    accept: {
-      "application/pdf": [".pdf"],
-    },
+    accept: { "application/pdf": [".pdf"] },
     maxFiles: 1,
-    disabled: uploading,
+    disabled: uploading || processing,
     onDrop: async (acceptedFiles) => {
       const file = acceptedFiles[0];
       if (file.size > 10 * 1024 * 1024) {
         toast.error("File size exceeds 10 MB limit. Please upload a smaller file.");
         return;
       }
+
       try {
         setUploading(true);
         const data = await uploadToS3(file);
         console.log("File uploaded to S3:", data);
+
         if (!data.file_key || !data.file_name) {
           toast.error("Failed to upload file. Please try again.");
           return;
         }
-        mutate(data, {
-          onSuccess: (data) => {
-            console.log("File processed successfully:", data);
-            toast.success("File uploaded successfully!");
-            // Optionally update UI or redirect here
-          },
-          onError: (error) => {
-            console.error("Error uploading file:", error);
-            toast.error("Failed to upload file. Please try again.");
-          },
-        });
+
+        setProcessing(true);
+        mutation.mutate(data);
       } catch (error) {
         console.error("Error uploading file:", error);
         toast.error("Failed to upload file. Please try again.");
@@ -68,20 +69,26 @@ const FileUpload = () => {
     },
   });
 
+  const isLoading = uploading || processing;
+
   return (
-    <div className="p-2 bg-white rounded-xl ">
+    <div className="p-2 bg-white rounded-xl">
       <div
         {...getRootProps({
           className:
             "p-8 border-dashed border-2 rounded-xl flex items-center justify-center cursor-pointer bg-gray-50 py-8 flex-col" +
-            (uploading ? " opacity-50 pointer-events-none" : ""),
+            (isLoading ? " opacity-50 pointer-events-none" : ""),
         })}
       >
         <input {...getInputProps()} />
-        {(uploading )  ? (
+        {isLoading ? (
           <>
             <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
-            <p className="text-sm text-gray-500">Spilling Tea to GPT...</p>
+            <p className="text-sm text-gray-500">
+              {uploading
+                ? "Uploading file to S3..."
+                : "Spilling Tea to GPT..."}
+            </p>
           </>
         ) : (
           <>
