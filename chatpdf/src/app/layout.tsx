@@ -1,3 +1,4 @@
+
 import { type Metadata } from "next";
 import {
   ClerkProvider,
@@ -12,6 +13,7 @@ import "./globals.css";
 import { Button } from "../components/ui/button"
 import Providers from "../components/Providers";
 import { Toaster } from "react-hot-toast";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -40,17 +42,18 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
-          <header className="header">
-            <SignedOut>
-              <Button variant="default" asChild>
-              <SignInButton />
-              </Button>
-              <Button variant='default' asChild>
-              <SignUpButton />
-              </Button>
-            </SignedOut>
-            
-          </header>
+          {/* {isHome && (
+              <header className="header p-4 flex gap-2">
+                <SignedOut>
+                  <Button variant="default" asChild>
+                    <SignInButton />
+                  </Button>
+                  <Button variant="default" asChild>
+                    <SignUpButton />
+                  </Button>
+                </SignedOut>
+              </header>
+            )} */}
           {children}
           <Toaster></Toaster>
         </body>
