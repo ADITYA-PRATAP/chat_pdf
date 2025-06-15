@@ -46,10 +46,10 @@ export async function chunkedUpsert(
   }
 
   const chunks = chunkArray(vectors, chunkSize);
-  console.log(`✅ Chunking into ${chunks.length} chunks of up to ${chunkSize} vectors each`);
+ 
 
   for (const [i, chunk] of chunks.entries()) {
-    console.log(`→ Upserting chunk ${i + 1}/${chunks.length} (${chunk.length} vectors)…`);
+    // console.log(`→ Upserting chunk ${i + 1}/${chunks.length} (${chunk.length} vectors)…`);
     try {
       await index.namespace(namespace).upsert(chunk);
     } catch (err) {
@@ -84,13 +84,11 @@ type PDFPage = {
 
 export async function loadS3IntoPinecone(filekey: string) {
   try {
-    console.log('Loading S3 file into Pinecone:', filekey);
+    // console.log('Loading S3 file into Pinecone:', filekey);
 
     // 1. Download PDF from S3
     const fileName = await downloadFileFromS3(filekey);
-    if (!fileName) {
-      throw new Error('Failed to download PDF file from S3');
-    }
+    if (!fileName) throw new Error('Failed to download PDF file from S3');
 
     // 2. Load all pages from the PDF
     const loader = new PDFLoader(fileName);
@@ -98,33 +96,42 @@ export async function loadS3IntoPinecone(filekey: string) {
 
     // 3. Split & segment each page into Document chunks
     const docsPerPage = await Promise.all(pages.map(prepareDocument));
+    const allDocs = docsPerPage.flat();
 
-    // 4. For every chunk, compute embeddings → Vector[]
-    const vectors: Vector[] = [];
-    for (const pageChunks of docsPerPage) {
-      const embedded = await Promise.all(pageChunks.map(embedDocument));
-      vectors.push(...embedded);
-    }
+    // 4. Embed each document into a vector
+    const vectors: Vector[] = await Promise.all(allDocs.map(embedDocument));
 
-    console.log(`Embedding complete. Will upload ${vectors.length} total vector(s).`);
+    // console.log(`✅ Generated ${vectors.length} vectors`);
 
-    // 5. Initialize Pinecone and get index
+    // 5. Initialize Pinecone client and index
     const client = getPineconeClient();
-    const pineconeIndex = client.index('chatpdf-aditya-768');
+    const index = client.index('chatpdf-aditya-1536',"chatpdf-aditya-1536-oucbank.svc.aped-4627-b74a.pinecone.io"); // make sure this host is correct
 
-    // 6. Upsert in chunks of 10 (you can adjust chunkSize as needed)
+    // 6. Define namespace
     const namespace = convertToAscii(filekey);
-    console.log(`pineconeIndex ${pineconeIndex} vectors into namespace: ${namespace} vectors ${vectors}` + '...');
 
-    await chunkedUpsert(pineconeIndex, vectors, namespace, 200);
+    // 7. Chunk and upsert
+    const chunks = chunkArray(vectors, 200);
+   for (const [i, chunk] of chunks.entries()) {
+  // console.log(`→ Upserting chunk ${i + 1}/${chunks.length} (${chunk.length} vectors)…`);
+  await index.namespace(namespace).upsert(
+    chunk.map((v) => ({
+      id: v.id,       // Correct property here
+      values: v.values,
+      metadata: v.metadata,
+    }))
+  );
+}
 
-    console.log('All chunks upserted successfully.');
-    return docsPerPage[0]; // or whatever you need to return
+
+    // console.log('✅ All chunks upserted successfully.');
+    return docsPerPage[0]; // return first page or as needed
   } catch (error) {
-    console.error('Error loading file into Pinecone:', error);
+    console.error('❌ Error loading file into Pinecone:', error);
     throw error;
   }
 }
+
 async function embedDocument(doc:Document){
   try {
     const embeddings = await getEmbeddings(doc.pageContent);

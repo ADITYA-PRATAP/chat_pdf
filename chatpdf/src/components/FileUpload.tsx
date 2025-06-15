@@ -51,7 +51,7 @@ const FileUpload = () => {
       try {
         setUploading(true);
         const data = await uploadToS3(file);
-        console.log("File uploaded to S3:", data);
+        // console.log("File uploaded to S3:", data);
 
         if (!data.file_key || !data.file_name) {
           toast.error("Failed to upload file. Please try again.");
@@ -72,7 +72,7 @@ const FileUpload = () => {
   const isLoading = uploading || processing;
 
   return (
-    <div className="p-2 bg-white rounded-xl">
+    <div className="p-2 bg-white rounded-xl ">
       <div
         {...getRootProps({
           className:

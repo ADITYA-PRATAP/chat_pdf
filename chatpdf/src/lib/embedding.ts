@@ -1,37 +1,34 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import OpenAI from "openai";
 
-// Initialize the Generative Model with your Gemini API key
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY as string);
+// Initialize OpenAI with your API key
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY, // Ensure this is set in your environment
+});
 
 export const getEmbeddings = async (text: string): Promise<number[]> => {
-    try {
-        // Ensure the API key is provided
-        if (!process.env.GEMINI_API_KEY) {
-            throw new Error("GEMINI_API_KEY is not defined in environment variables.");
-        }
-
-        // Get the embedding model (you'll need to specify a compatible model)
-        // For text embeddings, typically "embedding-001" or similar is used.
-        // Always refer to the latest Gemini API documentation for available embedding models.
-        const model = genAI.getGenerativeModel({ model: "embedding-001" });
-
-        // Replace newlines with spaces for better embedding quality
-        const formattedText = text.replace(/\n/g, ' ');
-
-        // Call the embedding API
-        const result = await model.embedContent(formattedText);
-
-        console.log("Embedding result:", result);
-        // Extract the embedding vector
-        const embedding = result.embedding.values;
-
-        if (!embedding || embedding.length === 0) {
-            throw new Error("No embedding data returned from Gemini API");
-        }
-
-        return embedding; // return the embedding vector as number[]
-    } catch (error) {
-        console.error("Error getting embeddings from Gemini:", error);
-        throw error; // rethrow to handle it further up if needed
+  try {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is not defined in environment variables.");
     }
+
+    const formattedText = text.replace(/\n/g, " ");
+
+    const response = await openai.embeddings.create({
+      model: "text-embedding-3-small",
+      input: formattedText,
+    });
+
+    const embedding = response.data[0]?.embedding;
+
+    // console.log("Embedding:", embedding);
+
+    if (!embedding || embedding.length === 0) {
+      throw new Error("No embedding data returned from OpenAI");
+    }
+
+    return embedding;
+  } catch (error) {
+    console.error("Error getting embeddings from OpenAI:", error);
+    throw error;
+  }
 };

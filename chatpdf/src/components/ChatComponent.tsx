@@ -1,5 +1,5 @@
 'use client'
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Input } from "../components/ui/input";
 import { useChat } from '@ai-sdk/react';
 import { Button } from "../components/ui/button";
@@ -9,6 +9,9 @@ import MessageList from './MessageList';
 const ChatComponent = (props: any) => {
   const { input, handleInputChange, handleSubmit, messages } = useChat({
     api: "/api/chat",
+    body: {
+      chatId: props.chatId
+    }
   });
 
   // Wrap handleSubmit to prevent default form submit reload
@@ -17,8 +20,20 @@ const ChatComponent = (props: any) => {
     handleSubmit();
   };
 
+
+useEffect(()=>{
+  const messageContainer = document.getElementById('message-container');
+  if(messageContainer){
+    messageContainer.scrollTo({
+      top: messageContainer.scrollHeight,
+      behavior: 'smooth'
+    })
+  }
+
+},[messages])
+
   return (
-    <div className="relative max-h-screen overflow">
+    <div className="relative max-h-screen overflow " id="message-container">
       {/* header */}
       <div className="sticky top-0 inset-x-0 p-2  h-fit">
         <h3 className="text-xl font-bold">Chat</h3>

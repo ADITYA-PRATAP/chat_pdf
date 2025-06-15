@@ -1,112 +1,65 @@
 // src/app/api/chat/route.ts
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 
-export const runtime = "edge";
+// These imports using @ai-sdk or @vercel/ai
+import { Message, streamText } from "ai";
+import { openai } from "@ai-sdk/openai";
 
-export async function POST(req: Request) {
+import { eq } from "drizzle-orm";
+import { chats } from "../../../lib/db/schema";
+import { db } from "../../../lib/db";
+import { getContext } from "../../../lib/context";
+
+export async function POST(request: Request) {
   try {
-    const { messages } = await req.json();
+    const body = await request.json();
+    const { messages, chatId } = body;
+    const lastMessage = messages[messages.length - 1];
 
-    // Format messages for Gemini API
-    const formattedMessages = messages.map(msg => ({
-      role: msg.role === 'user' ? 'user' : 'model',
-      parts: [{ text: msg.content }],
-    }));
+    // console.log("lastMessage", lastMessage,chatId);
+    const _chats = await db.select().from(chats).where(eq(chats.id, chatId));
 
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-    const MODEL_NAME = "gemini-2.0-flash";
-
-    if (!GEMINI_API_KEY) {
-      console.error("GEMINI_API_KEY is not set in environment variables.");
-      return NextResponse.json(
-        { message: "API key not configured." },
-        { status: 500 }
-      );
+    if (_chats.length === 0) {
+      return NextResponse.json({ error: "Chat not found" }, { status: 404 });
     }
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:streamGenerateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: formattedMessages }),
-      }
-    );
+    const fileKey = _chats[0].filekey;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Gemini API error:", errorText);
-      throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
-    }
+    const context = await getContext(lastMessage.content, fileKey);
 
-    const reader = response.body!.getReader();
-    const decoder = new TextDecoder();
+    const prompt = {
+      role: "system",
+      content: `AI assistant is a brand new, powerful, human-like artificial intelligence.
+                The traits of AI include expert knowledge, helpfulness, cleverness, and articulateness.
+                AI is a well-behaved and well-mannered individual.
+                AI is always friendly, kind, and inspiring, and is eager to provide vivid and thoughtful responses to the user.
+                AI has the sum of all knowledge in its brain, and is able to accurately answer nearly any question about any topic in existence.
+                AI assistant is a big fan of Pinecone and Vercel.
+                START CONTEXT BLOCK
+                ${context}
+                END OF CONTEXT BLOCK
+                AI assistant will take into account any CONTEXT BLOCK that is provided in a conversation.
+                If the context does not provide the answer to a question, the AI assistant will say, "I'm sorry, but I don't know the answer."
+                AI assistant will not apologize for previous responses, but will indicate that new information was gained.
+                AI assistant will not invent anything that is not drawn directly from the context.`,
+    };
 
-    const stream = new ReadableStream({
-      async start(controller) {
-        let buffer = '';
+    const response = streamText({
+      model: openai("gpt-3.5-turbo"),
+      messages: [prompt, ...messages.filter((message:Message) => message.role == "user")],
+     }
+  );
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            controller.close();
-            break;
-          }
-
-          buffer += decoder.decode(value, { stream: true });
-
-          // Split by double newline (SSE event delimiter)
-          const parts = buffer.split('\n\n');
-          // Keep incomplete part in buffer
-          buffer = parts.pop() || '';
-
-          for (const part of parts) {
-            // Each part is like "data: {JSON}"
-            if (part.startsWith('data:')) {
-              const dataStr = part.replace(/^data:\s*/, '').trim();
-
-              if (dataStr === '[DONE]') {
-                controller.close();
-                return;
-              }
-
-              try {
-                const data = JSON.parse(dataStr);
-                const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-                if (text) {
-                  // Send data as SSE format: "data: {...}\n\n"
-                  controller.enqueue(`data: ${JSON.stringify({ text })}\n\n`);
-                }
-              } catch (e) {
-                console.error('JSON parse error:', e, 'chunk:', dataStr);
-                controller.enqueue(`data: ${JSON.stringify({ error: 'Failed to parse stream data' })}\n\n`);
-              }
-            }
-          }
-        }
-      },
-      cancel(reason) {
-        console.warn('Stream cancelled:', reason);
-        response.body?.cancel(reason);
-      },
-    });
-
-    return new NextResponse(stream, {
+    return response.toDataStreamResponse({
       headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        Connection: 'keep-alive',
+        "Content-Type": "text/event-stream",
       },
-    });
+    }
+  );
   } catch (error) {
-    console.error('API Route Error:', error);
+    console.error("Error processing chat:", error);
     return NextResponse.json(
-      {
-        message: 'Failed at Gemini API call',
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-      },
+      { error: "Error processing chat" },
       { status: 500 }
     );
   }

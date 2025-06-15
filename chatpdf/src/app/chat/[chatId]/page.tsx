@@ -42,7 +42,9 @@ const page = async ({ params: { chatId } }) => {
         </div>
         <div className="flex-[3] border-1-4 border-1-slate-200">
           {/* chat component  */}
-          <ChatComponent/>
+          <ChatComponent
+           chatId={chatId}
+          />
         </div>
       </div>
     </div>

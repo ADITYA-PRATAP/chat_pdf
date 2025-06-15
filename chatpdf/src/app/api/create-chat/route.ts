@@ -20,7 +20,7 @@ export async function POST(request: Request) {
 
     await loadS3IntoPinecone(file_key);
 
-    console.log("File loaded into Pinecone successfully",userId, file_key, file_name);
+    // console.log("File loaded into Pinecone successfully",userId, file_key, file_name);
     const chat_id = await db.insert(chats).values({
   filekey: file_key,
   pdfName: file_name,
