@@ -37,7 +37,7 @@ const page = async ({ params: { chatId } }) => {
         <div className="flex-[1] max-w-xs">
           <ChatSideBar chats={_chats} chatId={Number(chatId)} />
         </div>
-        <div className="max-h-screen p-4 overflow--y-scroll flex-[5]">
+        <div className="max-h-screen p-4 overflow--y-scroll flex-[5] border-r-4 border-1-gray-200">
           <PDFViewer pdf_url={currentchats.pdfUrl || ""} />
         </div>
         <div className="flex-[3] border-1-4 border-1-slate-200">

@@ -10,7 +10,7 @@ export default async function Home() {
   const isAuth = !!userId;
 
   return (
-    <div className="body">
+    <div className="bg-gradient-to-bl from-indigo-200 via-red-200 to-yellow-100">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
         <div className="flex flex-col items-center text-center">
           <div className="flex">
@@ -22,7 +22,7 @@ export default async function Home() {
           </div>
           
 
-          <div className="flex mt-4">
+          <div className="flex mt-5 w-full">
             {isAuth ? (
               <FileUpload/>
             ) : (
@@ -33,7 +33,7 @@ export default async function Home() {
               </Link>
             )}
           </div>
-            <p className="max-w-xl mt-2 text-lg ">
+            <p className="max-w-xl mt-3 text-lg text-gray-700">
             Join millons of students, researchers and professionals as they chat with their PDFs.
             </p>
             

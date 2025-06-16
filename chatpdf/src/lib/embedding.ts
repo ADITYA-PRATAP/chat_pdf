@@ -20,8 +20,6 @@ export const getEmbeddings = async (text: string): Promise<number[]> => {
 
     const embedding = response.data[0]?.embedding;
 
-    // console.log("Embedding:", embedding);
-
     if (!embedding || embedding.length === 0) {
       throw new Error("No embedding data returned from OpenAI");
     }

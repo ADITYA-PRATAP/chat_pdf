@@ -28,6 +28,8 @@ export const messages =pgTable('messages',{
     chatId:integer('chat_id').references(()=>chats.id).notNull(),
     content:text('content').notNull(),
     role:userSystemEnum('role').notNull(),
+    createdAt:timestamp('created_at').notNull().defaultNow()
+    
 })
 
 export type DrizzleChat =typeof chats.$inferSelect

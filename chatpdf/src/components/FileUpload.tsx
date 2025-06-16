@@ -72,7 +72,7 @@ const FileUpload = () => {
   const isLoading = uploading || processing;
 
   return (
-    <div className="p-2 bg-white rounded-xl ">
+    <div className="p-2 bg-white rounded-xl shadow w-full">
       <div
         {...getRootProps({
           className:
