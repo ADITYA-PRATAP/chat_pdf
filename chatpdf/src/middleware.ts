@@ -9,6 +9,9 @@ const isPublicRoute = createRouteMatcher([
   "/api/chat",
   "/chat/(.*)",
   "/api/get-messages",
+  "/api/stripe",
+  "/api/webhook",
+  "/api/middleware",
 ]);
 
 export default clerkMiddleware((auth, req) => {

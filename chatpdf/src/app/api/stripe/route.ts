@@ -6,7 +6,7 @@ import { db } from "../../../lib/db";
 import { userSubscription } from "../../../lib/db/schema";
 import { stripe } from "../../../lib/stripe";
 
-const return_url = process.env.NEXT_PUBLIC_URL + '/';
+const return_url = process.env.NEXT_PUBLIC_BASE_URL + '/';
 export async function GET() {
     try {
         const {userId} = await auth();
@@ -34,17 +34,30 @@ export async function GET() {
             customer_email: user?.emailAddresses[0].emailAddress,
             line_items: [
                 {
-                    price: process.env.STRIPE_PRICE_ID!,
-                    quantity: 1,
-                },
+                    price_data:{
+                        currency:"usd",
+                        product_data:{
+                            name:"ChatPDF Pro",
+                            description:"Unlimited access to ChatPDF Pro features"
+                        },
+                        unit_amount: 2000,
+                        recurring: {
+                            interval: "month"
+                        },
+                    },
+                    quantity:1,
+                }
             ],
             metadata: {
                 userId,
             },
         })
+        return NextResponse.json({url:stripeSession.url})
         // user first time to subscribe
 
     } catch (error) {
+        console.log("[STRIPE_ERROR]",error);
+        return new NextResponse((error as {message:string}).message,{status:500})
         
     }
    
