@@ -1,17 +1,35 @@
-import React from "react";
+"use client"
+import React ,{useState}from "react";
 import { DrizzleChat } from "../lib/db/schema";
 import { chat } from "@pinecone-database/pinecone/dist/assistant/data/chat";
 import Link from "next/link";
 import { Button } from "../components/ui/button";
 import { MessageCircle, PlusCircle, PlusIcon } from "lucide-react";
 import { cn } from "../lib/utils";
-
+import axios from "axios";
 type Props = {
   chats: DrizzleChat[];
   chatId: number;
 };
 
 const ChatSideBar = ({ chats, chatId }: Props) => {
+  const [loading, setLoading] = useState(false);
+  const handleSubscribe = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get("/api/stripe");
+      window.location.href = response.data.url
+      
+    } catch (error) {
+      
+    } finally {
+      setLoading(false);
+      
+    }
+  };
+
+
+
   return (
     <div className="w-full h-screen text-gray-200 bg-gray-900 p-4">
       <Link href="/">
@@ -45,6 +63,7 @@ const ChatSideBar = ({ chats, chatId }: Props) => {
           <Link href={"/sign-out"}>Sign Out</Link>
           {/* Stripe   */}
         </div>
+        <Button className={"text-white mt-2 bg-slate-700 cursor-pointer"} onClick={handleSubscribe} disabled={loading}>Upgrade to Pro!</Button>
       </div>
     </div>
   );

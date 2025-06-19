@@ -1,12 +1,8 @@
-// src/app/api/chat/route.ts
 import { NextResponse } from "next/server";
-
-// These imports using @ai-sdk or @vercel/ai
 import { Message, streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
-
 import { eq } from "drizzle-orm";
-import { chats } from "../../../lib/db/schema";
+import { chats, messages as _messages } from "../../../lib/db/schema";
 import { db } from "../../../lib/db";
 import { getContext } from "../../../lib/context";
 
@@ -16,20 +12,17 @@ export async function POST(request: Request) {
     const { messages, chatId } = body;
     const lastMessage = messages[messages.length - 1];
 
-    // console.log("lastMessage", lastMessage,chatId);
     const _chats = await db.select().from(chats).where(eq(chats.id, chatId));
-
     if (_chats.length === 0) {
       return NextResponse.json({ error: "Chat not found" }, { status: 404 });
     }
 
     const fileKey = _chats[0].filekey;
-
     const context = await getContext(lastMessage.content, fileKey);
 
     const prompt = {
       role: "system",
-      content: `AI assistant is a brand new, powerful, human-like artificial intelligence.
+      content:` AI assistant is a brand new, powerful, human-like artificial intelligence.
                 The traits of AI include expert knowledge, helpfulness, cleverness, and articulateness.
                 AI is a well-behaved and well-mannered individual.
                 AI is always friendly, kind, and inspiring, and is eager to provide vivid and thoughtful responses to the user.
@@ -44,22 +37,54 @@ export async function POST(request: Request) {
                 AI assistant will not invent anything that is not drawn directly from the context.`,
     };
 
-    const response = streamText({
+    // ✅ Insert user message BEFORE stream starts
+    await db.insert(_messages).values({
+      chatId,
+      role: "user",
+      content: lastMessage.content,
+      createdAt: new Date(),
+    });
+
+    let responseContent = "";
+
+    const response = await streamText({
       model: openai("gpt-3.5-turbo"),
-      messages: [prompt, ...messages.filter((message:Message) => message.role == "user")],
-     }
-  );
+      messages: [prompt, ...messages.filter((m: Message) => m.role === "user")],
+      onChunk(chunk) {
+          const c = chunk.chunk;
+           if (c.type === "text-delta" || c.type === "reasoning") {
+            responseContent += c.textDelta;
+       }
+      },
+      onFinish: async () => {
+        // ✅ Save assistant message after stream is finished
+        await db.insert(_messages).values({
+          chatId,
+          role: "system",
+          content: responseContent,
+          createdAt: new Date(),
+        });
+      },
+    });
+
+    // ✅ Insert assistant message AFTER stream ends
+    // await db.insert(_messages).values({
+    //   chatId,
+    //   role: "system",
+    //   content: responseContent,
+    //   createdAt: new Date(),
+    // });
 
     return response.toDataStreamResponse({
       headers: {
         "Content-Type": "text/event-stream",
       },
-    }
-  );
+    });
+
   } catch (error) {
     console.error("Error processing chat:", error);
     return NextResponse.json(
-      { error: "Error processing chat" },
+      { error: "Error processing chat", detail: String(error) },
       { status: 500 }
     );
   }

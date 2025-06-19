@@ -113,7 +113,8 @@
 }
 
 body{
-  background-color: aliceblue
+  background-color: rgba(213, 231, 247, 0.692)
+  
 }
 .header{
   display:flex;
