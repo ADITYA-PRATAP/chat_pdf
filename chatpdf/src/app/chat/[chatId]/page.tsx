@@ -7,13 +7,14 @@ import { eq } from "drizzle-orm";
 import ChatSideBar from "../../../components/ChatSideBar";
 import PDFViewer from "../../../components/PDFViewer";
 import ChatComponent from "../../../components/ChatComponent";
+
 type Props = {
-  params: {
-    chatId: string;
-  };
+  params: Promise<{ chatId: string }>;
 };
 
-const page = async ({ params: { chatId } }) => {
+
+const ChatPage = async ({params} : Props) => {
+  const {chatId} = await params;
   const { userId } = await auth();
 
   if (!userId) {
@@ -51,4 +52,4 @@ const page = async ({ params: { chatId } }) => {
   );
 };
 
-export default page;
+export default ChatPage;

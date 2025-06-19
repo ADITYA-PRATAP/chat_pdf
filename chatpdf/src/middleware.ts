@@ -14,12 +14,13 @@ const isPublicRoute = createRouteMatcher([
   "/api/middleware",
 ]);
 
-export default clerkMiddleware((auth, req) => {
-  if (!isPublicRoute(req)) {
-    auth().protect(); // will throw 500 if user is not signed in
-  }
+export default clerkMiddleware(async (auth, req) => {
+    if(!isPublicRoute(req)){
+        await auth.protect();
+    }
 });
 
 export const config = {
   matcher: ["/((?!_next|.*\\..*).*)", "/(api|trpc)(.*)"],
 };
+
