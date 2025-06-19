@@ -3,14 +3,31 @@ import { auth } from "@clerk/nextjs/server";
 import { SignedIn, UserButton } from "@clerk/nextjs";
 import { Button } from "../components/ui/button";
 import Link from "next/link";
-import {LogIn} from "lucide-react"
+import {LogIn, Subscript} from "lucide-react"
 import FileUpload from "../components/FileUpload";
+import { checkSubscription } from "../lib/subscription";
+import { db } from "../lib/db";
+import { eq } from "drizzle-orm";
+import { chats } from "../lib/db/schema";
+import SubscriptionButton from "../components/SubscriptionButton";
 export default async function Home() {
   const { userId } = await auth();
-  const isAuth = !!userId;
+  const isAuth = !!userId;  
+  const isPro = await checkSubscription();
+
+  console.log(isPro,"ispro");
+
+  let firstUser;
+
+  if(userId){
+    firstUser = await db.select().from(chats).where(eq(chats.userId, userId));
+    if(firstUser){
+      firstUser = firstUser[0];
+    }
+  }
 
   return (
-    <div className="body">
+    <div className="bg-gradient-to-bl from-indigo-200 via-red-200 to-yellow-100">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
         <div className="flex flex-col items-center text-center">
           <div className="flex">
@@ -21,8 +38,18 @@ export default async function Home() {
           </SignedIn>
           </div>
           
+          <div className="flex mt-2 gap-2">
 
-          <div className="flex mt-4">
+           {isAuth&& firstUser && 
+           <Link href={`/chat/${firstUser.id}`}>
+            <Button variant="default" >Go to Chat</Button>
+           </Link>
+           }
+            <SubscriptionButton  isPro={isPro}/>
+           
+
+          </div>
+          <div className="flex mt-5 w-full">
             {isAuth ? (
               <FileUpload/>
             ) : (
@@ -33,7 +60,7 @@ export default async function Home() {
               </Link>
             )}
           </div>
-            <p className="max-w-xl mt-2 text-lg ">
+            <p className="max-w-xl mt-3 text-lg text-gray-700">
             Join millons of students, researchers and professionals as they chat with their PDFs.
             </p>
             

@@ -5,13 +5,27 @@ import { useChat } from '@ai-sdk/react';
 import { Button } from "../components/ui/button";
 import { Send } from "lucide-react";
 import MessageList from './MessageList';
+import { useQuery } from '@tanstack/react-query';
+import axios from 'axios';
 
 const ChatComponent = (props: any) => {
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['chat', props.chatId],
+    queryFn: async () => {
+      const response = await axios.post('/api/get-messages', { chatId: props.chatId })
+      console.log(response.data);
+      return response?.data?._messages
+    }
+  })
+
+
   const { input, handleInputChange, handleSubmit, messages } = useChat({
     api: "/api/chat",
     body: {
       chatId: props.chatId
-    }
+    },
+    initialMessages: data || []
   });
 
   // Wrap handleSubmit to prevent default form submit reload
@@ -21,42 +35,47 @@ const ChatComponent = (props: any) => {
   };
 
 
-useEffect(()=>{
-  const messageContainer = document.getElementById('message-container');
-  if(messageContainer){
-    messageContainer.scrollTo({
-      top: messageContainer.scrollHeight,
-      behavior: 'smooth'
-    })
-  }
+  useEffect(() => {
+    const messageContainer = document.getElementById('message-container');
+    if (messageContainer) {
+      messageContainer.scrollTo({
+        top: messageContainer.scrollHeight,
+        behavior: 'smooth'
+      })
+    }
 
-},[messages])
+  }, [messages])
 
   return (
-    <div className="relative max-h-screen overflow " id="message-container">
+    <div className="relative max-h-screen overflow-y-scroll " id="message-container">
       {/* header */}
       <div className="sticky top-0 inset-x-0 p-2  h-fit">
         <h3 className="text-xl font-bold">Chat</h3>
       </div>
 
       {/* message list */}
-      <MessageList messages={messages} />
+      <MessageList messages={messages}
+        isLoading={isLoading}
+      />
 
       {/* form */}
-      <form
-        onSubmit={onSubmit}
-        className="sticky bottom-0 inset-x-0 px-2 py-4  flex gap-2"
-      >
-        <Input
-          value={input}
-          onChange={handleInputChange}
-          placeholder="Ask a question..."
-          className="w-full"
-        />
-        <Button type="submit" className="bg-blue-500 hover:bg-blue-600">
-          <Send className="mr-2 w-4 h-4" />
-        </Button>
-      </form>
+      <div>
+        <form
+          onSubmit={onSubmit}
+          className="sticky bottom-0 inset-x-0 px-2 py-4  flex gap-2"
+        >
+          <Input
+            value={input}
+            onChange={handleInputChange}
+            placeholder="Ask a question..."
+            className="w-full"
+          />
+          <Button type="submit" className="bg-blue-500 hover:bg-blue-600">
+            <Send className="mr-2 w-4 h-4" />
+          </Button>
+        </form>
+      </div>
+      
     </div>
   );
 };
