@@ -27,7 +27,17 @@ A modern, AI-powered Question & Answer system that supports querying PDF content
 
 ---
 
-📁 Project Structure
+## ✨ Features
+
+- 🔐 Secure authentication with Clerk
+- 📄 Upload and parse PDF documents
+- 💬 AI-powered chat with document context
+- 🧠 Vector search using Pinecone
+- 🧵 Streaming responses using Vercel AI SDK
+- 🌐 Fully typed with TypeScript
+- 💡 Clean and accessible UI built with Radix & ShadCN
+
+## 📁 Project Structure
 ```bash
 PDFGPTee/
 ├── public/                 
@@ -59,12 +69,4 @@ PDFGPTee/
 
 
 
-## ✨ Features
 
-- 🔐 Secure authentication with Clerk
-- 📄 Upload and parse PDF documents
-- 💬 AI-powered chat with document context
-- 🧠 Vector search using Pinecone
-- 🧵 Streaming responses using Vercel AI SDK
-- 🌐 Fully typed with TypeScript
-- 💡 Clean and accessible UI built with Radix & ShadCN
