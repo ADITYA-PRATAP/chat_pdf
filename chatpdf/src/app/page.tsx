@@ -49,7 +49,7 @@ export default async function Home() {
            
 
           </div>
-          <div className="flex mt-5 w-full">
+          <div className="flex mt-5 w-full justify-center">
             {isAuth ? (
               <FileUpload/>
             ) : (
