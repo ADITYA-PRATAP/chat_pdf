@@ -3,11 +3,28 @@ import { auth } from "@clerk/nextjs/server";
 import { SignedIn, UserButton } from "@clerk/nextjs";
 import { Button } from "../components/ui/button";
 import Link from "next/link";
-import {LogIn} from "lucide-react"
+import {LogIn, Subscript} from "lucide-react"
 import FileUpload from "../components/FileUpload";
+import { checkSubscription } from "../lib/subscription";
+import { db } from "../lib/db";
+import { eq } from "drizzle-orm";
+import { chats } from "../lib/db/schema";
+import SubscriptionButton from "../components/SubscriptionButton";
 export default async function Home() {
   const { userId } = await auth();
-  const isAuth = !!userId;
+  const isAuth = !!userId;  
+  const isPro = await checkSubscription();
+
+  console.log(isPro,"ispro");
+
+  let firstUser;
+
+  if(userId){
+    firstUser = await db.select().from(chats).where(eq(chats.userId, userId));
+    if(firstUser){
+      firstUser = firstUser[0];
+    }
+  }
 
   return (
     <div className="bg-gradient-to-bl from-indigo-200 via-red-200 to-yellow-100">
@@ -21,7 +38,17 @@ export default async function Home() {
           </SignedIn>
           </div>
           
+          <div className="flex mt-2 gap-2">
 
+           {isAuth&& firstUser && 
+           <Link href={`/chat/${firstUser.id}`}>
+            <Button variant="default" >Go to Chat</Button>
+           </Link>
+           }
+            <SubscriptionButton  isPro={isPro}/>
+           
+
+          </div>
           <div className="flex mt-5 w-full">
             {isAuth ? (
               <FileUpload/>
