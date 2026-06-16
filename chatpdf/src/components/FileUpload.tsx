@@ -1,6 +1,6 @@
 "use client";
 
-import { Inbox, Loader2 } from "lucide-react";
+import { FileText, Loader2, UploadCloud } from "lucide-react";
 import React from "react";
 import { useDropzone } from "react-dropzone";
 import { uploadToS3 } from "../lib/s3";
@@ -8,6 +8,7 @@ import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { cn } from "../lib/utils";
 
 interface UploadData {
   file_key: string;
@@ -16,7 +17,7 @@ interface UploadData {
 
 const FileUpload = () => {
   const [uploading, setUploading] = React.useState(false);
-  const [processing, setProcessing] = React.useState(false); // <-- API loader
+  const [processing, setProcessing] = React.useState(false);
   const router = useRouter();
 
   const mutation = useMutation({
@@ -25,7 +26,7 @@ const FileUpload = () => {
       return response.data;
     },
     onSuccess: (data) => {
-      toast.success("File uploaded successfully!");
+      toast.success("Your document is ready to chat!");
       router.push(`/chat/${data.chat_id}`);
     },
     onError: (error) => {
@@ -43,15 +44,15 @@ const FileUpload = () => {
     disabled: uploading || processing,
     onDrop: async (acceptedFiles) => {
       const file = acceptedFiles[0];
+      if (!file) return;
       if (file.size > 10 * 1024 * 1024) {
-        toast.error("File size exceeds 10 MB limit. Please upload a smaller file.");
+        toast.error("File exceeds the 10 MB limit. Please upload a smaller file.");
         return;
       }
 
       try {
         setUploading(true);
         const data = await uploadToS3(file);
-        // console.log("File uploaded to S3:", data);
 
         if (!data.file_key || !data.file_name) {
           toast.error("Failed to upload file. Please try again.");
@@ -72,33 +73,61 @@ const FileUpload = () => {
   const isLoading = uploading || processing;
 
   return (
-    <div className="p-2 bg-white rounded-xl shadow w-full">
-      <div
-        {...getRootProps({
-          className:
-            "p-8 border-dashed border-2 rounded-xl flex items-center justify-center cursor-pointer bg-gray-50 py-8 flex-col" +
-            (isLoading ? " opacity-50 pointer-events-none" : ""),
-        })}
-      >
-        <input {...getInputProps()} />
-        {isLoading ? (
-          <>
-            <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
-            <p className="text-sm text-gray-500">
+    <div
+      {...getRootProps({
+        className: cn(
+          "group relative flex min-h-52 cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-border bg-secondary/40 px-6 py-10 text-center transition-colors",
+          isDragActive && "border-primary bg-accent",
+          !isLoading && "hover:border-primary/60 hover:bg-accent/60",
+          isLoading && "pointer-events-none opacity-80"
+        ),
+      })}
+      aria-busy={isLoading}
+    >
+      <input {...getInputProps()} aria-label="Upload a PDF" />
+
+      {isLoading ? (
+        <>
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-card shadow-sm">
+            <Loader2 className="h-7 w-7 animate-spin text-primary" />
+          </span>
+          <div>
+            <p className="font-medium text-foreground">
+              {uploading ? "Uploading your document…" : "Reading & indexing…"}
+            </p>
+            <p className="mt-0.5 text-sm text-muted-foreground">
               {uploading
-                ? "Uploading file to S3..."
-                : "Spilling Tea to GPT..."}
+                ? "Securely transferring your file."
+                : "Teaching the AI about your PDF — almost there."}
             </p>
-          </>
-        ) : (
-          <>
-            <Inbox className="w-10 h-10 text-blue-500" />
-            <p className="text-sm text-gray-500">
-              Drag and drop your files here, or click to select files
+          </div>
+          <div className="mt-1 h-1 w-40 overflow-hidden rounded-full bg-border">
+            <div className="h-full w-1/2 animate-pulse rounded-full bg-primary" />
+          </div>
+        </>
+      ) : (
+        <>
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-card text-primary shadow-sm transition-transform group-hover:scale-105">
+            {isDragActive ? (
+              <FileText className="h-7 w-7" />
+            ) : (
+              <UploadCloud className="h-7 w-7" />
+            )}
+          </span>
+          <div>
+            <p className="font-medium text-foreground">
+              {isDragActive ? "Drop to upload" : "Drag & drop your PDF here"}
             </p>
-          </>
-        )}
-      </div>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              or{" "}
+              <span className="font-medium text-primary underline-offset-4 group-hover:underline">
+                browse your files
+              </span>
+            </p>
+          </div>
+          <p className="text-xs text-muted-foreground">PDF only · up to 10 MB</p>
+        </>
+      )}
     </div>
   );
 };

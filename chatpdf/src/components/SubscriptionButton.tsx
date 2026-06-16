@@ -1,38 +1,47 @@
+"use client";
 
-"use client"
-import React,{useState} from 'react'
-import {Button} from "../components/ui/button";
+import React, { useState } from "react";
+import { Button } from "../components/ui/button";
 import axios from "axios";
+import { Loader2, Sparkles } from "lucide-react";
+import toast from "react-hot-toast";
+
 type Props = {
-    isPro: boolean,
-    
-}
-const SubscriptionButton = (
-    props: Props
-) => {
-     const [loading, setLoading] = useState(false);
+  isPro: boolean;
+  className?: string;
+};
+
+const SubscriptionButton = ({ isPro, className }: Props) => {
+  const [loading, setLoading] = useState(false);
+
   const handleSubscribe = async () => {
     try {
       setLoading(true);
       const response = await axios.get("/api/stripe");
-      window.location.href = response.data.url
-      
+      window.location.href = response.data.url;
     } catch (error) {
-      
-    } finally {
+      console.error(error);
+      toast.error("Couldn't open billing. Please try again.");
       setLoading(false);
-      
     }
   };
-  return (
-    <div>
-        <Button disabled={loading} onClick={handleSubscribe} variant={"secondary"}>
-            {
-                props.isPro ? "Manage Subscription" : "Get Pro"
-            }
-        </Button>
-        </div>
-  )
-}
 
-export default SubscriptionButton
+  return (
+    <Button
+      disabled={loading}
+      onClick={handleSubscribe}
+      variant={isPro ? "outline" : "secondary"}
+      size="lg"
+      className={className}
+    >
+      {loading ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        !isPro && <Sparkles className="h-4 w-4" />
+      )}
+      {isPro ? "Manage subscription" : "Upgrade to Pro"}
+    </Button>
+  );
+};
+
+export default SubscriptionButton;

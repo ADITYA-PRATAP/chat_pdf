@@ -7,46 +7,51 @@ import { eq } from "drizzle-orm";
 import ChatSideBar from "../../../components/ChatSideBar";
 import PDFViewer from "../../../components/PDFViewer";
 import ChatComponent from "../../../components/ChatComponent";
+import { checkSubscription } from "../../../lib/subscription";
 
 type Props = {
   params: Promise<{ chatId: string }>;
 };
 
-
-const ChatPage = async ({params} : Props) => {
-  const {chatId} = await params;
+const ChatPage = async ({ params }: Props) => {
+  const { chatId } = await params;
   const { userId } = await auth();
 
   if (!userId) {
     return redirect("/sign-in");
   }
+
   const _chats = await db.select().from(chats).where(eq(chats.userId, userId));
 
   if (!_chats.length) {
     return redirect("/");
   }
-  if (!_chats.find((chat) => chat.id === Number(chatId))) {
+
+  const currentChat = _chats.find((chat) => chat.id === Number(chatId));
+  if (!currentChat) {
     return redirect("/");
   }
 
-  const currentchats = _chats.find((chat) => chat.id === Number(chatId));
+  const isPro = await checkSubscription();
 
   return (
-    <div className="flex max-h-screen overflow-hideen">
-      <div className="flex w-full max-h-screen overflow-hidden">
-          {/* chatsidebar */}
-        <div className="flex-[1] max-w-xs">
-          <ChatSideBar chats={_chats} chatId={Number(chatId)} />
-        </div>
-        <div className="max-h-screen p-4 overflow--y-scroll flex-[5] border-r-4 border-1-gray-200">
-          <PDFViewer pdf_url={currentchats.pdfUrl || ""} />
-        </div>
-        <div className="flex-[3] border-1-4 border-1-slate-200">
-          {/* chat component  */}
-          <ChatComponent
-           chatId={chatId}
-          />
-        </div>
+    <div className="flex h-screen flex-col overflow-hidden bg-background lg:flex-row">
+      {/* Sidebar — hidden on small screens */}
+      <aside className="hidden w-72 shrink-0 md:block">
+        <ChatSideBar chats={_chats} chatId={Number(chatId)} isPro={isPro} />
+      </aside>
+
+      {/* Document + chat */}
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        {/* PDF viewer */}
+        <section className="min-h-0 flex-1 border-b border-border bg-muted/30 lg:border-b-0 lg:border-r">
+          <PDFViewer pdf_url={currentChat.pdfUrl || ""} pdf_name={currentChat.pdfName} />
+        </section>
+
+        {/* Chat */}
+        <section className="flex min-h-0 w-full flex-col bg-card lg:w-[26rem] xl:w-[30rem]">
+          <ChatComponent chatId={chatId} chatName={currentChat.pdfName} />
+        </section>
       </div>
     </div>
   );
